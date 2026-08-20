@@ -3,8 +3,10 @@ package xpand
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"text/template"
 )
 
@@ -14,8 +16,25 @@ const (
 )
 
 type options struct {
-	leftDelim  string
-	rightDelim string
+	leftDelim   string
+	rightDelim  string
+	resolverMap map[string]Resolver
+}
+
+func (o *options) validate() error {
+	errs := []error{}
+
+	for scheme, resolver := range o.resolverMap {
+		if len(scheme) == 0 {
+			errs = append(errs, errors.New("scheme must not be empty"))
+		} else if strings.Contains(scheme, referenceSeparator) {
+			errs = append(errs, fmt.Errorf("scheme %q must not contain reference separator %q", scheme, referenceSeparator))
+		} else if resolver == nil {
+			errs = append(errs, fmt.Errorf("resolver for scheme %q must not be nil", scheme))
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 // Option configures the expansion.
@@ -29,14 +48,28 @@ func WithDelims(left, right string) Option {
 	}
 }
 
+// WithResolver registers the resolver for the scheme.
+// It overrides the resolver already registered for the same scheme, including the built-in ones.
+func WithResolver(scheme string, resolver Resolver) Option {
+	return func(o *options) {
+		o.resolverMap[scheme] = resolver
+	}
+}
+
 // File reads the file at path, expands it as a [text/template], and returns the result.
 func File(ctx context.Context, path string, opts ...Option) ([]byte, error) {
 	o := &options{
-		leftDelim:  DefaultLeftDelim,
-		rightDelim: DefaultRightDelim,
+		leftDelim:   DefaultLeftDelim,
+		rightDelim:  DefaultRightDelim,
+		resolverMap: newResolverMap(),
 	}
-	for _, opt := range opts {
-		opt(o)
+	{
+		for _, opt := range opts {
+			opt(o)
+		}
+	}
+	if err := o.validate(); err != nil {
+		return nil, fmt.Errorf("invalid option: %w", err)
 	}
 
 	b, err := os.ReadFile(path)
@@ -47,7 +80,7 @@ func File(ctx context.Context, path string, opts ...Option) ([]byte, error) {
 	tmpl, err := template.
 		New(path).
 		Delims(o.leftDelim, o.rightDelim).
-		Funcs(newFuncMap(ctx, newResolverMap())).
+		Funcs(newFuncMap(ctx, o.resolverMap)).
 		Parse(string(b))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse: %w", err)

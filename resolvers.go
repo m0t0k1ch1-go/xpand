@@ -5,12 +5,19 @@ import (
 	"os"
 )
 
-type resolver func(ctx context.Context, key string) (string, bool, error)
+const (
+	SchemeRaw = "raw"
+	SchemeEnv = "env"
+)
 
-func newResolverMap() map[string]resolver {
-	return map[string]resolver{
-		"raw": resolveRaw,
-		"env": resolveEnv,
+// Resolver resolves the value for key.
+// The second return value reports whether the value was resolved.
+type Resolver func(ctx context.Context, key string) (string, bool, error)
+
+func newResolverMap() map[string]Resolver {
+	return map[string]Resolver{
+		SchemeRaw: resolveRaw,
+		SchemeEnv: resolveEnv,
 	}
 }
 
