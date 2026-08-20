@@ -1,6 +1,7 @@
 package xpand_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,15 +13,52 @@ import (
 
 func TestFile(t *testing.T) {
 	t.Run("failure", func(t *testing.T) {
+		type input struct {
+			path string
+			opts []xpand.Option
+		}
+
 		tcs := []struct {
 			name string
-			in   string
+			in   input
 			want string
 		}{
 			{
-				"template function returns an error",
-				`{"baz":"{{ lookup "env:XPAND_TEST_BAZ" }}"}`,
-				`no value resolved for "env:XPAND_TEST_BAZ"`,
+				"with a resolver for an empty scheme",
+				input{
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
+					opts: []xpand.Option{
+						xpand.WithResolver("", xpand.ResolveRaw),
+					},
+				},
+				"invalid option: scheme must not be empty",
+			},
+			{
+				"with a resolver for a scheme containing the reference separator",
+				input{
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
+					opts: []xpand.Option{
+						xpand.WithResolver("foo:bar", xpand.ResolveRaw),
+					},
+				},
+				`invalid option: scheme "foo:bar" must not contain reference separator ":"`,
+			},
+			{
+				"with a nil resolver",
+				input{
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
+					opts: []xpand.Option{
+						xpand.WithResolver("nil", nil),
+					},
+				},
+				`invalid option: resolver for scheme "nil" must not be nil`,
+			},
+			{
+				"with an unresolvable reference",
+				input{
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_UNSET" }}"}`),
+				},
+				`no value resolved for "env:XPAND_TEST_UNSET"`,
 			},
 		}
 
@@ -28,9 +66,7 @@ func TestFile(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				ctx := t.Context()
 
-				path := writeFile(t, "config.json", tc.in)
-
-				_, err := xpand.File(ctx, path)
+				_, err := xpand.File(ctx, tc.in.path, tc.in.opts...)
 				require.ErrorContains(t, err, tc.want)
 			})
 		}
@@ -42,12 +78,7 @@ func TestFile(t *testing.T) {
 			opts []xpand.Option
 		}
 
-		for k, v := range map[string]string{
-			"XPAND_TEST_FOO": "foo",
-			"XPAND_TEST_BAR": "bar",
-		} {
-			t.Setenv(k, v)
-		}
+		t.Setenv("XPAND_TEST_FOO", "foo")
 
 		tcs := []struct {
 			name string
@@ -57,30 +88,57 @@ func TestFile(t *testing.T) {
 			{
 				"with default delimiters",
 				input{
-					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" "raw:default" }}","bar":"{{ lookup "env:XPAND_TEST_BAR" }}"}`),
-					opts: nil,
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
 				},
-				`{"foo":"foo","bar":"bar"}`,
+				`{"foo":"foo"}`,
 			},
 			{
 				"with custom delimiters",
 				input{
-					path: writeFile(t, "config.json", `{"foo":"<< lookup "env:XPAND_TEST_FOO" "raw:default" >>","bar":"<< lookup "env:XPAND_TEST_BAR" >>"}`),
+					path: writeFile(t, "config.json", `{"foo":"<< lookup "env:XPAND_TEST_FOO" >>"}`),
 					opts: []xpand.Option{
 						xpand.WithDelims("<<", ">>"),
 					},
 				},
-				`{"foo":"foo","bar":"bar"}`,
+				`{"foo":"foo"}`,
 			},
 			{
 				"with empty delimiters",
 				input{
-					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" "raw:default" }}","bar":"{{ lookup "env:XPAND_TEST_BAR" }}"}`),
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
 					opts: []xpand.Option{
 						xpand.WithDelims("", ""),
 					},
 				},
-				`{"foo":"foo","bar":"bar"}`,
+				`{"foo":"foo"}`,
+			},
+			{
+				"with a custom resolver",
+				input{
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "secret:foo" }}"}`),
+					opts: []xpand.Option{
+						xpand.WithResolver("secret", func(_ context.Context, key string) (string, bool, error) {
+							v, ok := map[string]string{
+								"foo": "s3cr3t",
+							}[key]
+
+							return v, ok, nil
+						}),
+					},
+				},
+				`{"foo":"s3cr3t"}`,
+			},
+			{
+				"with a custom resolver overriding a built-in one",
+				input{
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "raw:foo" }}"}`),
+					opts: []xpand.Option{
+						xpand.WithResolver(xpand.SchemeRaw, func(_ context.Context, key string) (string, bool, error) {
+							return key + ".overridden", true, nil
+						}),
+					},
+				},
+				`{"foo":"foo.overridden"}`,
 			},
 		}
 

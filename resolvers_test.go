@@ -78,7 +78,7 @@ func TestResolveEnv(t *testing.T) {
 		},
 		{
 			"key is not set",
-			"XPAND_TEST_BAZ",
+			"XPAND_TEST_UNSET",
 			output{"", false},
 		},
 	}

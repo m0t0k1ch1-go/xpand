@@ -6,5 +6,3 @@ var (
 	ResolveRaw = resolveRaw
 	ResolveEnv = resolveEnv
 )
-
-type Resolver = resolver
