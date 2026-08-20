@@ -1,4 +1,4 @@
-module github.com/m0t0k1ch1-go/config
+module github.com/m0t0k1ch1-go/tmplutil
 
 go 1.26
 
