@@ -4,57 +4,50 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"text/template"
 )
 
-func newFuncMap(ctx context.Context) template.FuncMap {
+func newFuncMap(ctx context.Context, resolverMap map[string]resolver) template.FuncMap {
 	return template.FuncMap{
-		"env": func(keysAndDefaultValue ...string) (string, error) {
-			return env(ctx, keysAndDefaultValue...)
-		},
-		"must_env": func(keys ...string) (string, error) {
-			return mustEnv(ctx, keys...)
+		"lookup": func(refs ...string) (string, error) {
+			return lookup(ctx, resolverMap, refs...)
 		},
 	}
 }
 
-func env(_ context.Context, keysAndDefaultValue ...string) (string, error) {
-	if len(keysAndDefaultValue) < 2 {
-		return "", errors.New("at least one key and a default value must be provided")
+func lookup(ctx context.Context, resolverMap map[string]resolver, refs ...string) (string, error) {
+	if len(refs) == 0 {
+		return "", errors.New("at least one reference must be provided")
 	}
 
-	keys := keysAndDefaultValue[:len(keysAndDefaultValue)-1]
-	defaultValue := keysAndDefaultValue[len(keysAndDefaultValue)-1]
+	for _, ref := range refs {
+		scheme, key, ok := strings.Cut(ref, ":")
+		if !ok {
+			return "", fmt.Errorf("missing scheme in reference %q", ref)
+		}
 
-	for _, key := range keys {
-		if v, ok := os.LookupEnv(key); ok {
+		r, ok := resolverMap[scheme]
+		if !ok {
+			return "", fmt.Errorf("unknown scheme %q in reference %q", scheme, ref)
+		}
+
+		v, ok, err := r(ctx, key)
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve %q: %w", ref, err)
+		}
+		if ok {
 			return v, nil
 		}
 	}
 
-	return defaultValue, nil
-}
-
-func mustEnv(_ context.Context, keys ...string) (string, error) {
-	if len(keys) == 0 {
-		return "", errors.New("at least one key must be provided")
-	}
-
-	for _, key := range keys {
-		if v, ok := os.LookupEnv(key); ok {
-			return v, nil
-		}
-	}
-
-	quotedKeys := make([]string, len(keys))
+	quotedRefs := make([]string, len(refs))
 	{
-		for idx, key := range keys {
-			quotedKeys[idx] = strconv.Quote(key)
+		for idx, ref := range refs {
+			quotedRefs[idx] = strconv.Quote(ref)
 		}
 	}
 
-	return "", fmt.Errorf("%s must be set", strings.Join(quotedKeys, " or "))
+	return "", fmt.Errorf("no value resolved for %s", strings.Join(quotedRefs, " or "))
 }

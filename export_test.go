@@ -1,6 +1,10 @@
 package xpand
 
 var (
-	Env     = env
-	MustEnv = mustEnv
+	Lookup = lookup
+
+	ResolveRaw = resolveRaw
+	ResolveEnv = resolveEnv
 )
+
+type Resolver = resolver

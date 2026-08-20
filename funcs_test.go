@@ -1,6 +1,8 @@
 package xpand_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -8,7 +10,22 @@ import (
 	"github.com/m0t0k1ch1-go/xpand"
 )
 
-func TestEnv(t *testing.T) {
+func TestLookup(t *testing.T) {
+	resolverMap := map[string]xpand.Resolver{
+		"is": func(_ context.Context, key string) (string, bool, error) {
+			return key, true, nil
+		},
+		"empty": func(_ context.Context, _ string) (string, bool, error) {
+			return "", true, nil
+		},
+		"skip": func(_ context.Context, _ string) (string, bool, error) {
+			return "", false, nil
+		},
+		"fail": func(_ context.Context, _ string) (string, bool, error) {
+			return "", false, errors.New("something went wrong")
+		},
+	}
+
 	t.Run("failure", func(t *testing.T) {
 		tcs := []struct {
 			name string
@@ -16,14 +33,34 @@ func TestEnv(t *testing.T) {
 			want string
 		}{
 			{
-				"no keys and no default value",
+				"no references",
 				[]string{},
-				"at least one key and a default value must be provided",
+				"at least one reference must be provided",
 			},
 			{
-				"one key and no default value",
-				[]string{"XPAND_TEST_FOO"},
-				"at least one key and a default value must be provided",
+				"single reference: missing scheme",
+				[]string{"foo"},
+				`missing scheme in reference "foo"`,
+			},
+			{
+				"single reference: unknown scheme",
+				[]string{"unknown:foo"},
+				`unknown scheme "unknown" in reference "unknown:foo"`,
+			},
+			{
+				"single reference: resolver returns an error",
+				[]string{"fail:foo"},
+				`failed to resolve "fail:foo": something went wrong`,
+			},
+			{
+				"single reference: not resolved",
+				[]string{"skip:foo"},
+				`no value resolved for "skip:foo"`,
+			},
+			{
+				"multiple references: none resolved",
+				[]string{"skip:foo", "skip:bar"},
+				`no value resolved for "skip:foo" or "skip:bar"`,
 			},
 		}
 
@@ -31,136 +68,36 @@ func TestEnv(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				ctx := t.Context()
 
-				_, err := xpand.Env(ctx, tc.in...)
+				_, err := xpand.Lookup(ctx, resolverMap, tc.in...)
 				require.ErrorContains(t, err, tc.want)
 			})
 		}
 	})
 
 	t.Run("success", func(t *testing.T) {
-		for k, v := range map[string]string{
-			"XPAND_TEST_FOO":   "foo",
-			"XPAND_TEST_BAR":   "bar",
-			"XPAND_TEST_EMPTY": "",
-		} {
-			t.Setenv(k, v)
-		}
-
 		tcs := []struct {
 			name string
 			in   []string
 			want string
 		}{
 			{
-				"one key and a default value: first key is set",
-				[]string{"XPAND_TEST_FOO", "default"},
+				"single reference: resolved",
+				[]string{"is:foo"},
 				"foo",
 			},
 			{
-				"one key and a default value: first key is set to an empty string",
-				[]string{"XPAND_TEST_EMPTY", "default"},
+				"single reference: resolved to an empty value",
+				[]string{"empty:foo"},
 				"",
 			},
 			{
-				"one key and a default value: first key is not set",
-				[]string{"XPAND_TEST_BAZ", "default"},
-				"default",
-			},
-			{
-				"two keys and a default value: first key is set",
-				[]string{"XPAND_TEST_FOO", "XPAND_TEST_BAR", "default"},
+				"multiple references: the first is resolved",
+				[]string{"is:foo", "fail:bar"},
 				"foo",
 			},
 			{
-				"two keys and a default value: first key is not set, second key is set",
-				[]string{"XPAND_TEST_BAZ", "XPAND_TEST_BAR", "default"},
-				"bar",
-			},
-			{
-				"two keys and a default value: both keys are not set",
-				[]string{"XPAND_TEST_BAZ", "XPAND_TEST_QUX", "default"},
-				"default",
-			},
-		}
-
-		for _, tc := range tcs {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := t.Context()
-
-				got, err := xpand.Env(ctx, tc.in...)
-				require.NoError(t, err)
-				require.Equal(t, tc.want, got)
-			})
-		}
-	})
-}
-
-func TestMustEnv(t *testing.T) {
-	t.Run("failure", func(t *testing.T) {
-		tcs := []struct {
-			name string
-			in   []string
-			want string
-		}{
-			{
-				"no keys",
-				[]string{},
-				"at least one key must be provided",
-			},
-			{
-				"one key: key is not set",
-				[]string{"XPAND_TEST_BAZ"},
-				`"XPAND_TEST_BAZ" must be set`,
-			},
-			{
-				"two keys: both keys are not set",
-				[]string{"XPAND_TEST_BAZ", "XPAND_TEST_QUX"},
-				`"XPAND_TEST_BAZ" or "XPAND_TEST_QUX" must be set`,
-			},
-		}
-
-		for _, tc := range tcs {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := t.Context()
-
-				_, err := xpand.MustEnv(ctx, tc.in...)
-				require.ErrorContains(t, err, tc.want)
-			})
-		}
-	})
-
-	t.Run("success", func(t *testing.T) {
-		for k, v := range map[string]string{
-			"XPAND_TEST_FOO":   "foo",
-			"XPAND_TEST_BAR":   "bar",
-			"XPAND_TEST_EMPTY": "",
-		} {
-			t.Setenv(k, v)
-		}
-
-		tcs := []struct {
-			name string
-			in   []string
-			want string
-		}{
-			{
-				"one key: key is set",
-				[]string{"XPAND_TEST_FOO"},
-				"foo",
-			},
-			{
-				"one key: key is set to an empty string",
-				[]string{"XPAND_TEST_EMPTY"},
-				"",
-			},
-			{
-				"two keys: first key is set",
-				[]string{"XPAND_TEST_FOO", "XPAND_TEST_BAR"},
-				"foo",
-			},
-			{
-				"two keys: first key is not set, second key is set",
-				[]string{"XPAND_TEST_BAZ", "XPAND_TEST_BAR"},
+				"multiple references: the first is not resolved, the second is",
+				[]string{"skip:foo", "is:bar"},
 				"bar",
 			},
 		}
@@ -169,9 +106,9 @@ func TestMustEnv(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				ctx := t.Context()
 
-				got, err := xpand.MustEnv(ctx, tc.in...)
+				v, err := xpand.Lookup(ctx, resolverMap, tc.in...)
 				require.NoError(t, err)
-				require.Equal(t, tc.want, got)
+				require.Equal(t, tc.want, v)
 			})
 		}
 	})
