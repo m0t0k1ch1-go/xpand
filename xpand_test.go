@@ -19,8 +19,8 @@ func TestFile(t *testing.T) {
 		}{
 			{
 				"template function returns an error",
-				`{"baz":"{{ must_env "XPAND_TEST_BAZ" }}"}`,
-				`"XPAND_TEST_BAZ" must be set`,
+				`{"baz":"{{ lookup "env:XPAND_TEST_BAZ" }}"}`,
+				`no value resolved for "env:XPAND_TEST_BAZ"`,
 			},
 		}
 
@@ -57,7 +57,7 @@ func TestFile(t *testing.T) {
 			{
 				"with default delimiters",
 				input{
-					path: writeFile(t, "config.json", `{"foo":"{{ env "XPAND_TEST_FOO" "default" }}","bar":"{{ must_env "XPAND_TEST_BAR" }}"}`),
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" "raw:default" }}","bar":"{{ lookup "env:XPAND_TEST_BAR" }}"}`),
 					opts: nil,
 				},
 				`{"foo":"foo","bar":"bar"}`,
@@ -65,7 +65,7 @@ func TestFile(t *testing.T) {
 			{
 				"with custom delimiters",
 				input{
-					path: writeFile(t, "config.json", `{"foo":"<< env "XPAND_TEST_FOO" "default" >>","bar":"<< must_env "XPAND_TEST_BAR" >>"}`),
+					path: writeFile(t, "config.json", `{"foo":"<< lookup "env:XPAND_TEST_FOO" "raw:default" >>","bar":"<< lookup "env:XPAND_TEST_BAR" >>"}`),
 					opts: []xpand.Option{
 						xpand.WithDelims("<<", ">>"),
 					},
@@ -75,7 +75,7 @@ func TestFile(t *testing.T) {
 			{
 				"with empty delimiters",
 				input{
-					path: writeFile(t, "config.json", `{"foo":"{{ env "XPAND_TEST_FOO" "default" }}","bar":"{{ must_env "XPAND_TEST_BAR" }}"}`),
+					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" "raw:default" }}","bar":"{{ lookup "env:XPAND_TEST_BAR" }}"}`),
 					opts: []xpand.Option{
 						xpand.WithDelims("", ""),
 					},

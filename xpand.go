@@ -44,7 +44,11 @@ func File(ctx context.Context, path string, opts ...Option) ([]byte, error) {
 		return nil, fmt.Errorf("failed to read: %w", err)
 	}
 
-	tmpl, err := template.New(path).Delims(o.leftDelim, o.rightDelim).Funcs(newFuncMap(ctx)).Parse(string(b))
+	tmpl, err := template.
+		New(path).
+		Delims(o.leftDelim, o.rightDelim).
+		Funcs(newFuncMap(ctx, newResolverMap())).
+		Parse(string(b))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse: %w", err)
 	}
