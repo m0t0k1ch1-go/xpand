@@ -26,9 +26,11 @@ func TestFile(t *testing.T) {
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
+				ctx := t.Context()
+
 				path := writeFile(t, "config.json", tc.in)
 
-				_, err := xpand.File(path)
+				_, err := xpand.File(ctx, path)
 				require.ErrorContains(t, err, tc.want)
 			})
 		}
@@ -84,7 +86,9 @@ func TestFile(t *testing.T) {
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
-				b, err := xpand.File(tc.in.path, tc.in.opts...)
+				ctx := t.Context()
+
+				b, err := xpand.File(ctx, tc.in.path, tc.in.opts...)
 				require.NoError(t, err)
 				require.Equal(t, tc.want, string(b))
 			})

@@ -29,7 +29,9 @@ func TestEnv(t *testing.T) {
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := xpand.Env(tc.in...)
+				ctx := t.Context()
+
+				_, err := xpand.Env(ctx, tc.in...)
 				require.ErrorContains(t, err, tc.want)
 			})
 		}
@@ -83,7 +85,9 @@ func TestEnv(t *testing.T) {
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
-				got, err := xpand.Env(tc.in...)
+				ctx := t.Context()
+
+				got, err := xpand.Env(ctx, tc.in...)
 				require.NoError(t, err)
 				require.Equal(t, tc.want, got)
 			})
@@ -117,7 +121,9 @@ func TestMustEnv(t *testing.T) {
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := xpand.MustEnv(tc.in...)
+				ctx := t.Context()
+
+				_, err := xpand.MustEnv(ctx, tc.in...)
 				require.ErrorContains(t, err, tc.want)
 			})
 		}
@@ -161,7 +167,9 @@ func TestMustEnv(t *testing.T) {
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
-				got, err := xpand.MustEnv(tc.in...)
+				ctx := t.Context()
+
+				got, err := xpand.MustEnv(ctx, tc.in...)
 				require.NoError(t, err)
 				require.Equal(t, tc.want, got)
 			})
