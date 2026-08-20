@@ -2,6 +2,7 @@ package xpand
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"text/template"
@@ -10,13 +11,6 @@ import (
 const (
 	DefaultLeftDelim  = "{{"
 	DefaultRightDelim = "}}"
-)
-
-var (
-	funcMap = template.FuncMap{
-		"env":      env,
-		"must_env": mustEnv,
-	}
 )
 
 type options struct {
@@ -36,7 +30,7 @@ func WithDelims(left, right string) Option {
 }
 
 // File reads the file at path, expands it as a [text/template], and returns the result.
-func File(path string, opts ...Option) ([]byte, error) {
+func File(ctx context.Context, path string, opts ...Option) ([]byte, error) {
 	o := &options{
 		leftDelim:  DefaultLeftDelim,
 		rightDelim: DefaultRightDelim,
@@ -50,7 +44,7 @@ func File(path string, opts ...Option) ([]byte, error) {
 		return nil, fmt.Errorf("failed to read: %w", err)
 	}
 
-	tmpl, err := template.New(path).Delims(o.leftDelim, o.rightDelim).Funcs(funcMap).Parse(string(b))
+	tmpl, err := template.New(path).Delims(o.leftDelim, o.rightDelim).Funcs(newFuncMap(ctx)).Parse(string(b))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse: %w", err)
 	}

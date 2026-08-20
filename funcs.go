@@ -1,14 +1,27 @@
 package xpand
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+	"text/template"
 )
 
-func env(keysAndDefaultValue ...string) (string, error) {
+func newFuncMap(ctx context.Context) template.FuncMap {
+	return template.FuncMap{
+		"env": func(keysAndDefaultValue ...string) (string, error) {
+			return env(ctx, keysAndDefaultValue...)
+		},
+		"must_env": func(keys ...string) (string, error) {
+			return mustEnv(ctx, keys...)
+		},
+	}
+}
+
+func env(_ context.Context, keysAndDefaultValue ...string) (string, error) {
 	if len(keysAndDefaultValue) < 2 {
 		return "", errors.New("at least one key and a default value must be provided")
 	}
@@ -25,7 +38,7 @@ func env(keysAndDefaultValue ...string) (string, error) {
 	return defaultValue, nil
 }
 
-func mustEnv(keys ...string) (string, error) {
+func mustEnv(_ context.Context, keys ...string) (string, error) {
 	if len(keys) == 0 {
 		return "", errors.New("at least one key must be provided")
 	}
