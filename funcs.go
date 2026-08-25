@@ -1,7 +1,9 @@
 package xpand
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -18,6 +20,7 @@ func newFuncMap(ctx context.Context, resolverMap map[string]Resolver) template.F
 		"lookup": func(refs ...string) (string, error) {
 			return lookup(ctx, resolverMap, refs...)
 		},
+		"jsonEscape": jsonEscape,
 	}
 }
 
@@ -54,4 +57,23 @@ func lookup(ctx context.Context, resolverMap map[string]Resolver, refs ...string
 	}
 
 	return "", fmt.Errorf("no value resolved for %s", strings.Join(quotedRefs, " or "))
+}
+
+func jsonEscape(s string) (string, error) {
+	var buf bytes.Buffer
+	{
+		enc := json.NewEncoder(&buf)
+		enc.SetEscapeHTML(false)
+
+		if err := enc.Encode(s); err != nil {
+			return "", fmt.Errorf("failed to encode: %w", err)
+		}
+	}
+
+	b := buf.Bytes()
+	b = bytes.TrimSuffix(b, []byte("\n"))
+	b = bytes.TrimPrefix(b, []byte(`"`))
+	b = bytes.TrimSuffix(b, []byte(`"`))
+
+	return string(b), nil
 }

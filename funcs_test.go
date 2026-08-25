@@ -113,3 +113,47 @@ func TestLookup(t *testing.T) {
 		}
 	})
 }
+
+func TestJSONEscape(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+			want string
+		}{
+			{
+				"empty",
+				"",
+				"",
+			},
+			{
+				"nothing to escape",
+				"foo",
+				"foo",
+			},
+			{
+				"tab and newline",
+				"foo\tbar\n",
+				`foo\tbar\n`,
+			},
+			{
+				"json object",
+				`{"foo":"bar"}`,
+				`{\"foo\":\"bar\"}`,
+			},
+			{
+				"html characters: not escaped",
+				"<foo>&<bar>",
+				"<foo>&<bar>",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				v, err := xpand.JSONEscape(tc.in)
+				require.NoError(t, err)
+				require.Equal(t, tc.want, v)
+			})
+		}
+	})
+}
