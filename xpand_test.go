@@ -79,6 +79,7 @@ func TestFile(t *testing.T) {
 		}
 
 		t.Setenv("XPAND_TEST_FOO", "foo")
+		t.Setenv("XPAND_TEST_JSON", `{"foo":"bar"}`)
 
 		tcs := []struct {
 			name string
@@ -86,14 +87,14 @@ func TestFile(t *testing.T) {
 			want string
 		}{
 			{
-				"with default delimiters",
+				"lookup with default delimiters",
 				input{
 					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
 				},
 				`{"foo":"foo"}`,
 			},
 			{
-				"with custom delimiters",
+				"lookup with custom delimiters",
 				input{
 					path: writeFile(t, "config.json", `{"foo":"<< lookup "env:XPAND_TEST_FOO" >>"}`),
 					opts: []xpand.Option{
@@ -103,7 +104,7 @@ func TestFile(t *testing.T) {
 				`{"foo":"foo"}`,
 			},
 			{
-				"with empty delimiters",
+				"lookup with empty delimiters",
 				input{
 					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
 					opts: []xpand.Option{
@@ -113,7 +114,7 @@ func TestFile(t *testing.T) {
 				`{"foo":"foo"}`,
 			},
 			{
-				"with a custom resolver",
+				"lookup with a custom resolver",
 				input{
 					path: writeFile(t, "config.json", `{"foo":"{{ lookup "secret:foo" }}"}`),
 					opts: []xpand.Option{
@@ -129,7 +130,7 @@ func TestFile(t *testing.T) {
 				`{"foo":"s3cr3t"}`,
 			},
 			{
-				"with a custom resolver overriding a built-in one",
+				"lookup with a custom resolver overriding a built-in one",
 				input{
 					path: writeFile(t, "config.json", `{"foo":"{{ lookup "raw:foo" }}"}`),
 					opts: []xpand.Option{
@@ -139,6 +140,13 @@ func TestFile(t *testing.T) {
 					},
 				},
 				`{"foo":"foo.overridden"}`,
+			},
+			{
+				"lookup with jsonEscape",
+				input{
+					path: writeFile(t, "config.txt", `{{ lookup "env:XPAND_TEST_JSON" | jsonEscape }}`),
+				},
+				`{\"foo\":\"bar\"}`,
 			},
 		}
 

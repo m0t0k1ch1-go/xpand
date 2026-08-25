@@ -1,7 +1,8 @@
 package xpand
 
 var (
-	Lookup = lookup
+	Lookup     = lookup
+	JSONEscape = jsonEscape
 
 	ResolveRaw = resolveRaw
 	ResolveEnv = resolveEnv
