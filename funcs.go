@@ -1,9 +1,8 @@
 package xpand
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"strconv"
@@ -60,20 +59,10 @@ func lookup(ctx context.Context, resolverMap map[string]Resolver, refs ...string
 }
 
 func jsonEscape(s string) (string, error) {
-	var buf bytes.Buffer
-	{
-		enc := json.NewEncoder(&buf)
-		enc.SetEscapeHTML(false)
-
-		if err := enc.Encode(s); err != nil {
-			return "", fmt.Errorf("failed to encode: %w", err)
-		}
+	b, err := jsontext.AppendQuote(nil, s)
+	if err != nil {
+		return "", fmt.Errorf("failed to append quote: %w", err)
 	}
 
-	b := buf.Bytes()
-	b = bytes.TrimSuffix(b, []byte("\n"))
-	b = bytes.TrimPrefix(b, []byte(`"`))
-	b = bytes.TrimSuffix(b, []byte(`"`))
-
-	return string(b), nil
+	return string(b[1 : len(b)-1]), nil
 }
