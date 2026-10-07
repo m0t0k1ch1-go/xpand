@@ -23,7 +23,7 @@ type options struct {
 	resolverMap map[string]Resolver
 }
 
-func (o *options) validate() error {
+func (o options) validate() error {
 	errs := []error{}
 
 	for scheme, resolver := range o.resolverMap {
