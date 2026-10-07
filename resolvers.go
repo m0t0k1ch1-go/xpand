@@ -6,7 +6,9 @@ import (
 )
 
 const (
+	// SchemeRaw is the scheme of the built-in resolver that returns the key as is.
 	SchemeRaw = "raw"
+	// SchemeEnv is the scheme of the built-in resolver that looks up the environment variable named by the key.
 	SchemeEnv = "env"
 )
 

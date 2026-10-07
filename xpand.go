@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	DefaultLeftDelim  = "{{"
+	// DefaultLeftDelim is the left action delimiter used when none is set.
+	DefaultLeftDelim = "{{"
+	// DefaultRightDelim is the right action delimiter used when none is set.
 	DefaultRightDelim = "}}"
 )
 
