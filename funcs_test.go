@@ -35,17 +35,17 @@ func TestLookup(t *testing.T) {
 			{
 				"no references",
 				[]string{},
-				"at least one reference must be provided",
+				"invalid references: empty",
 			},
 			{
 				"single reference: missing scheme",
 				[]string{"foo"},
-				`missing scheme in reference "foo"`,
+				`invalid reference "foo": missing scheme`,
 			},
 			{
 				"single reference: unknown scheme",
 				[]string{"unknown:foo"},
-				`unknown scheme "unknown" in reference "unknown:foo"`,
+				`unsupported scheme: "unknown"`,
 			},
 			{
 				"single reference: resolver returns an error",
@@ -55,12 +55,12 @@ func TestLookup(t *testing.T) {
 			{
 				"single reference: not resolved",
 				[]string{"skip:foo"},
-				`no value resolved for "skip:foo"`,
+				"invalid references: no value resolved",
 			},
 			{
 				"multiple references: none resolved",
 				[]string{"skip:foo", "skip:bar"},
-				`no value resolved for "skip:foo" or "skip:bar"`,
+				"invalid references: no value resolved",
 			},
 		}
 

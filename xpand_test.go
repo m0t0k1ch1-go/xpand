@@ -73,7 +73,7 @@ func TestFile(t *testing.T) {
 				input{
 					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_UNSET" }}"}`),
 				},
-				`no value resolved for "env:XPAND_TEST_UNSET"`,
+				"invalid references: no value resolved",
 			},
 		}
 

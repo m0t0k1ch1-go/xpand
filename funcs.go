@@ -5,7 +5,6 @@ import (
 	"encoding/json/jsontext"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"text/template"
 )
@@ -25,18 +24,18 @@ func newFuncMap(ctx context.Context, resolverMap map[string]Resolver) template.F
 
 func lookup(ctx context.Context, resolverMap map[string]Resolver, refs ...string) (string, error) {
 	if len(refs) == 0 {
-		return "", errors.New("at least one reference must be provided")
+		return "", errors.New("invalid references: empty")
 	}
 
 	for _, ref := range refs {
 		scheme, key, ok := strings.Cut(ref, referenceSeparator)
 		if !ok {
-			return "", fmt.Errorf("missing scheme in reference %q", ref)
+			return "", fmt.Errorf("invalid reference %q: missing scheme", ref)
 		}
 
 		resolver, ok := resolverMap[scheme]
 		if !ok {
-			return "", fmt.Errorf("unknown scheme %q in reference %q", scheme, ref)
+			return "", fmt.Errorf("unsupported scheme: %q", scheme)
 		}
 
 		v, ok, err := resolver(ctx, key)
@@ -48,14 +47,7 @@ func lookup(ctx context.Context, resolverMap map[string]Resolver, refs ...string
 		}
 	}
 
-	quotedRefs := make([]string, len(refs))
-	{
-		for idx, ref := range refs {
-			quotedRefs[idx] = strconv.Quote(ref)
-		}
-	}
-
-	return "", fmt.Errorf("no value resolved for %s", strings.Join(quotedRefs, " or "))
+	return "", errors.New("invalid references: no value resolved")
 }
 
 func jsonEscape(s string) (string, error) {
