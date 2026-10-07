@@ -27,19 +27,19 @@ func (o options) validate() error {
 	errs := []error{}
 
 	if len(o.leftDelim) == 0 {
-		errs = append(errs, errors.New("left delimiter must not be empty"))
+		errs = append(errs, errors.New("invalid left delimiter: empty"))
 	}
 	if len(o.rightDelim) == 0 {
-		errs = append(errs, errors.New("right delimiter must not be empty"))
+		errs = append(errs, errors.New("invalid right delimiter: empty"))
 	}
 
 	for scheme, resolver := range o.resolverMap {
 		if len(scheme) == 0 {
-			errs = append(errs, errors.New("scheme must not be empty"))
+			errs = append(errs, errors.New("invalid scheme: empty"))
 		} else if strings.Contains(scheme, referenceSeparator) {
-			errs = append(errs, fmt.Errorf("scheme %q must not contain reference separator %q", scheme, referenceSeparator))
+			errs = append(errs, fmt.Errorf("invalid scheme %q: must not contain %q", scheme, referenceSeparator))
 		} else if resolver == nil {
-			errs = append(errs, fmt.Errorf("resolver for scheme %q must not be nil", scheme))
+			errs = append(errs, fmt.Errorf("invalid resolver for scheme %q: nil", scheme))
 		}
 	}
 

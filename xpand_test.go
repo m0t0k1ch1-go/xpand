@@ -30,7 +30,7 @@ func TestFile(t *testing.T) {
 						xpand.WithDelims("", ">>"),
 					},
 				},
-				"invalid option: left delimiter must not be empty",
+				"invalid option: invalid left delimiter: empty",
 			},
 			{
 				"with an empty right delimiter",
@@ -39,7 +39,7 @@ func TestFile(t *testing.T) {
 						xpand.WithDelims("<<", ""),
 					},
 				},
-				"invalid option: right delimiter must not be empty",
+				"invalid option: invalid right delimiter: empty",
 			},
 			{
 				"with a resolver for an empty scheme",
@@ -48,7 +48,7 @@ func TestFile(t *testing.T) {
 						xpand.WithResolver("", xpand.ResolveRaw),
 					},
 				},
-				"invalid option: scheme must not be empty",
+				"invalid option: invalid scheme: empty",
 			},
 			{
 				"with a resolver for a scheme containing the reference separator",
@@ -57,7 +57,7 @@ func TestFile(t *testing.T) {
 						xpand.WithResolver("foo:bar", xpand.ResolveRaw),
 					},
 				},
-				`invalid option: scheme "foo:bar" must not contain reference separator ":"`,
+				`invalid option: invalid scheme "foo:bar": must not contain ":"`,
 			},
 			{
 				"with a nil resolver",
@@ -66,7 +66,7 @@ func TestFile(t *testing.T) {
 						xpand.WithResolver("nil", nil),
 					},
 				},
-				`invalid option: resolver for scheme "nil" must not be nil`,
+				`invalid option: invalid resolver for scheme "nil": nil`,
 			},
 			{
 				"with an unresolvable reference",
