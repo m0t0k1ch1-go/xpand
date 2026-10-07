@@ -26,6 +26,13 @@ type options struct {
 func (o options) validate() error {
 	errs := []error{}
 
+	if len(o.leftDelim) == 0 {
+		errs = append(errs, errors.New("left delimiter must not be empty"))
+	}
+	if len(o.rightDelim) == 0 {
+		errs = append(errs, errors.New("right delimiter must not be empty"))
+	}
+
 	for scheme, resolver := range o.resolverMap {
 		if len(scheme) == 0 {
 			errs = append(errs, errors.New("scheme must not be empty"))
@@ -42,7 +49,7 @@ func (o options) validate() error {
 // Option configures the expansion.
 type Option func(*options)
 
-// WithDelims sets the action delimiters. Empty values stand for the defaults.
+// WithDelims sets the action delimiters.
 func WithDelims(left, right string) Option {
 	return func(o *options) {
 		o.leftDelim = left

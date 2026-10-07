@@ -24,9 +24,26 @@ func TestFile(t *testing.T) {
 			want string
 		}{
 			{
+				"with an empty left delimiter",
+				input{
+					opts: []xpand.Option{
+						xpand.WithDelims("", ">>"),
+					},
+				},
+				"invalid option: left delimiter must not be empty",
+			},
+			{
+				"with an empty right delimiter",
+				input{
+					opts: []xpand.Option{
+						xpand.WithDelims("<<", ""),
+					},
+				},
+				"invalid option: right delimiter must not be empty",
+			},
+			{
 				"with a resolver for an empty scheme",
 				input{
-					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
 					opts: []xpand.Option{
 						xpand.WithResolver("", xpand.ResolveRaw),
 					},
@@ -36,7 +53,6 @@ func TestFile(t *testing.T) {
 			{
 				"with a resolver for a scheme containing the reference separator",
 				input{
-					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
 					opts: []xpand.Option{
 						xpand.WithResolver("foo:bar", xpand.ResolveRaw),
 					},
@@ -46,7 +62,6 @@ func TestFile(t *testing.T) {
 			{
 				"with a nil resolver",
 				input{
-					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
 					opts: []xpand.Option{
 						xpand.WithResolver("nil", nil),
 					},
@@ -99,16 +114,6 @@ func TestFile(t *testing.T) {
 					path: writeFile(t, "config.json", `{"foo":"<< lookup "env:XPAND_TEST_FOO" >>"}`),
 					opts: []xpand.Option{
 						xpand.WithDelims("<<", ">>"),
-					},
-				},
-				`{"foo":"foo"}`,
-			},
-			{
-				"lookup with empty delimiters",
-				input{
-					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_FOO" }}"}`),
-					opts: []xpand.Option{
-						xpand.WithDelims("", ""),
 					},
 				},
 				`{"foo":"foo"}`,
