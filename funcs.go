@@ -24,18 +24,28 @@ func newFuncMap(ctx context.Context, resolverMap map[string]Resolver) template.F
 
 func lookup(ctx context.Context, resolverMap map[string]Resolver, refs ...string) (string, error) {
 	if len(refs) == 0 {
-		return "", errors.New("invalid references: empty")
+		return "", errors.New("invalid references: must not be empty")
 	}
 
 	for _, ref := range refs {
-		scheme, key, ok := strings.Cut(ref, referenceSeparator)
-		if !ok {
-			return "", fmt.Errorf("invalid reference %q: missing scheme", ref)
-		}
+		var (
+			resolver Resolver
+			key      string
+		)
+		{
+			var (
+				scheme string
+				ok     bool
+			)
+			scheme, key, ok = strings.Cut(ref, referenceSeparator)
+			if !ok {
+				return "", fmt.Errorf("invalid reference %q: must have a scheme", ref)
+			}
 
-		resolver, ok := resolverMap[scheme]
-		if !ok {
-			return "", fmt.Errorf("unsupported scheme: %q", scheme)
+			resolver, ok = resolverMap[scheme]
+			if !ok {
+				return "", fmt.Errorf("unsupported scheme: %q", scheme)
+			}
 		}
 
 		v, ok, err := resolver(ctx, key)
@@ -47,7 +57,7 @@ func lookup(ctx context.Context, resolverMap map[string]Resolver, refs ...string
 		}
 	}
 
-	return "", errors.New("invalid references: no value resolved")
+	return "", errors.New("failed to resolve references: no value resolved")
 }
 
 func jsonEscape(s string) (string, error) {

@@ -27,19 +27,19 @@ func (o options) validate() error {
 	errs := []error{}
 
 	if len(o.leftDelim) == 0 {
-		errs = append(errs, errors.New("invalid left delimiter: empty"))
+		errs = append(errs, errors.New("invalid left delimiter: must not be empty"))
 	}
 	if len(o.rightDelim) == 0 {
-		errs = append(errs, errors.New("invalid right delimiter: empty"))
+		errs = append(errs, errors.New("invalid right delimiter: must not be empty"))
 	}
 
 	for scheme, resolver := range o.resolverMap {
 		if len(scheme) == 0 {
-			errs = append(errs, errors.New("invalid scheme: empty"))
+			errs = append(errs, errors.New("invalid scheme: must not be empty"))
 		} else if strings.Contains(scheme, referenceSeparator) {
 			errs = append(errs, fmt.Errorf("invalid scheme %q: must not contain %q", scheme, referenceSeparator))
 		} else if resolver == nil {
-			errs = append(errs, fmt.Errorf("invalid resolver for scheme %q: nil", scheme))
+			errs = append(errs, fmt.Errorf("invalid resolver %q: must not be nil", scheme))
 		}
 	}
 
@@ -67,32 +67,35 @@ func WithResolver(scheme string, resolver Resolver) Option {
 
 // File reads the file at path, expands it as a [text/template], and returns the result.
 func File(ctx context.Context, path string, opts ...Option) ([]byte, error) {
-	o := &options{
-		leftDelim:   DefaultLeftDelim,
-		rightDelim:  DefaultRightDelim,
-		resolverMap: newResolverMap(),
-	}
+	var tmpl *template.Template
 	{
-		for _, opt := range opts {
-			opt(o)
+		o := &options{
+			leftDelim:   DefaultLeftDelim,
+			rightDelim:  DefaultRightDelim,
+			resolverMap: newResolverMap(),
 		}
-	}
-	if err := o.validate(); err != nil {
-		return nil, fmt.Errorf("invalid option: %w", err)
-	}
+		{
+			for _, opt := range opts {
+				opt(o)
+			}
+		}
+		if err := o.validate(); err != nil {
+			return nil, fmt.Errorf("invalid option: %w", err)
+		}
 
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read: %w", err)
-	}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read: %w", err)
+		}
 
-	tmpl, err := template.
-		New(path).
-		Delims(o.leftDelim, o.rightDelim).
-		Funcs(newFuncMap(ctx, o.resolverMap)).
-		Parse(string(b))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse: %w", err)
+		tmpl, err = template.
+			New(path).
+			Delims(o.leftDelim, o.rightDelim).
+			Funcs(newFuncMap(ctx, o.resolverMap)).
+			Parse(string(b))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse: %w", err)
+		}
 	}
 
 	var buf bytes.Buffer
