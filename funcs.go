@@ -37,13 +37,11 @@ func lookup(ctx context.Context, resolverMap map[string]Resolver, refs ...string
 				scheme string
 				ok     bool
 			)
-			scheme, key, ok = strings.Cut(ref, referenceSeparator)
-			if !ok {
+			if scheme, key, ok = strings.Cut(ref, referenceSeparator); !ok {
 				return "", fmt.Errorf("invalid reference %q: must have a scheme", ref)
 			}
 
-			resolver, ok = resolverMap[scheme]
-			if !ok {
+			if resolver, ok = resolverMap[scheme]; !ok {
 				return "", fmt.Errorf("unsupported scheme: %q", scheme)
 			}
 		}
