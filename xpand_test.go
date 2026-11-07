@@ -30,7 +30,7 @@ func TestFile(t *testing.T) {
 						xpand.WithDelims("", ">>"),
 					},
 				},
-				"invalid option: invalid left delimiter: empty",
+				"invalid option: invalid left delimiter: must not be empty",
 			},
 			{
 				"with an empty right delimiter",
@@ -39,7 +39,7 @@ func TestFile(t *testing.T) {
 						xpand.WithDelims("<<", ""),
 					},
 				},
-				"invalid option: invalid right delimiter: empty",
+				"invalid option: invalid right delimiter: must not be empty",
 			},
 			{
 				"with a resolver for an empty scheme",
@@ -48,7 +48,7 @@ func TestFile(t *testing.T) {
 						xpand.WithResolver("", xpand.ResolveRaw),
 					},
 				},
-				"invalid option: invalid scheme: empty",
+				"invalid option: invalid scheme: must not be empty",
 			},
 			{
 				"with a resolver for a scheme containing the reference separator",
@@ -66,14 +66,14 @@ func TestFile(t *testing.T) {
 						xpand.WithResolver("nil", nil),
 					},
 				},
-				`invalid option: invalid resolver for scheme "nil": nil`,
+				`invalid option: invalid resolver "nil": must not be nil`,
 			},
 			{
 				"with an unresolvable reference",
 				input{
 					path: writeFile(t, "config.json", `{"foo":"{{ lookup "env:XPAND_TEST_UNSET" }}"}`),
 				},
-				"invalid references: no value resolved",
+				"failed to resolve references: no value resolved",
 			},
 		}
 
